@@ -117,6 +117,7 @@ set(LUVIT_LIBS ${LUVIT_LIBS}
   buffer
   childprocess
   core
+  dgram
   dns
   fiber
   fs
