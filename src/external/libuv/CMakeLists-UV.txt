@@ -137,10 +137,10 @@ else()
     endif()
 endif()
 
-add_library(uv SHARED ${UV_SRCS})
+#add_library(uv SHARED ${UV_SRCS})
 add_library(uv-static STATIC ${UV_SRCS})
 
-target_link_libraries(uv ${UV_LIBS})
+#target_link_libraries(uv ${UV_LIBS})
 target_link_libraries(uv-static ${UV_LIBS})
 
 set_target_properties(
