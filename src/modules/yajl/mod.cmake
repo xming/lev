@@ -22,7 +22,7 @@ if (${USE_${MOD_NAME}})
   if (${USE_SYSTEM_${MOD_NAME}})
     luvit_find_system_pkg(${MOD_SYSTEM_PKG} ${MOD_SYSTEM_PKG_VAR})
   else() # not using system lib, needs to fetch and compile
-    luavit_add_ext(${MOD_NAME} modules ${MOD_DIR} ${MOD_URL} ${MOD_MD5} ${MOD_LINK_LIB} src)
+    luavit_add_ext(${MOD_NAME} modules ${MOD_DIR} ${MOD_URL} ${MOD_MD5} ${MOD_LINK_LIB} yajl-2.0.5/include)
   endif ()
   luvit_add_mod_src()
   #bundling
