@@ -1,0 +1,84 @@
+project(luajit)
+
+cmake_minimum_required(VERSION 2.8)
+
+file(GLOB BUILDVM_SRC src/buildvm*.c)
+add_executable(buildvm ${BUILDVM_SRC})
+
+# OS detection
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  add_definitions(-DLUAJIT_OS=LUAJIT_OS_LINUX)
+  set(LJVM_MODE elfasm)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  add_definitions(-malign-double -DLUAJIT_OS=LUAJIT_OS_WINDOWS -DLUA_BUILD_AS_DLL)
+  set(LJVM_MODE coffasm)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  add_definitions(-DLUAJIT_OS=LUAJIT_OS_OSX)
+  set(LJVM_MODE machasm)
+else()
+  add_definitions(-DLUAJIT_OS=LUAJIT_OS_OTHER)
+endif()
+
+# CPU detection
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL x86_64)
+  add_definitions(-DLUAJIT_TARGET=LUAJIT_ARCH_X64)
+elseif (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL i386)
+  add_definitions(-DLUAJIT_TARGET=LUAJIT_ARCH_x86)
+elseif(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL x86)
+  add_definitions(-DLUAJIT_TARGET=LUAJIT_ARCH_X86)
+elseif(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL arm)
+  add_definitions(-DLUAJIT_TARGET=LUAJIT_ARCH_ARM)
+endif()
+
+macro(buildvm GENERATED MODE)
+  add_custom_command(OUTPUT ${GENERATED}
+    COMMAND buildvm ARGS -m ${MODE} -o ${CMAKE_CURRENT_BINARY_DIR}/${GENERATED} ${ARGN}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DEPENDS buildvm
+  )
+endmacro()
+
+set(BUILDVM_SRC src/lib_base.c src/lib_math.c src/lib_bit.c src/lib_string.c
+   src/lib_table.c src/lib_io.c src/lib_os.c src/lib_package.c
+   src/lib_debug.c src/lib_jit.c src/lib_ffi.c)
+
+if(MSVC)
+  buildvm(lj_vm.obj peobj)
+  enable_language(ASM-MASM)
+  set (DEPS ${CMAKE_CURRENT_BINARY_DIR}/lj_vm.obj)
+else()
+  buildvm(lj_vm.s ${LJVM_MODE})
+  enable_language(ASM-ATT)
+  set (DEPS ${CMAKE_CURRENT_BINARY_DIR}/lj_vm.s)
+endif()
+
+buildvm(lj_folddef.h folddef src/lj_opt_fold.c)
+buildvm(lj_bcdef.h bcdef ${BUILDVM_SRC})
+buildvm(lj_ffdef.h ffdef ${BUILDVM_SRC})
+buildvm(lj_libdef.h libdef ${BUILDVM_SRC})
+buildvm(lj_recdef.h recdef ${BUILDVM_SRC})
+
+SET(DEPS ${DEPS}
+  ${CMAKE_CURRENT_BINARY_DIR}/lj_folddef.h
+  ${CMAKE_CURRENT_BINARY_DIR}/lj_bcdef.h
+  ${CMAKE_CURRENT_BINARY_DIR}/lj_ffdef.h
+  ${CMAKE_CURRENT_BINARY_DIR}/lj_libdef.h
+  ${CMAKE_CURRENT_BINARY_DIR}/lj_recdef.h
+)
+
+file(GLOB LJ_SRC src/lj_*.c)
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR} dynasm src)
+add_library(luajit-lib STATIC ${LJ_SRC} ${BUILDVM_SRC} ${DEPS} src/lib_aux.c src/lib_init.c)
+target_link_libraries(luajit-lib ${LIBS})
+
+add_executable(luajit src/luajit.c)
+target_link_libraries(luajit m dl luajit-lib)
+
+add_dependencies(luajit luajit-lib)
+
+set_target_properties(
+  luajit-lib
+  PROPERTIES
+  OUTPUT_NAME luajit
+)

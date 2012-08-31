@@ -1,0 +1,132 @@
+# Copyright (C) 2007-2012 LuaDist.
+# Submitted by David Manura
+# Redistribution and use of this file is allowed according to the terms of the MIT license.
+# For details see the COPYRIGHT file distributed with LuaDist.
+# Please note that the package source code is licensed under its own license.
+
+project(openssl)
+cmake_minimum_required(VERSION 2.8)
+
+add_definitions( -DOPENSSL_NO_ASM )
+if ( WIN32 AND NOT CYGWIN )
+  add_definitions( -DOPENSSL_SYSNAME_WIN32 )
+  add_definitions( -DWIN32_LEAN_AND_MEAN ) # avoid conflict: ocsp.h and wincrypt.h
+  add_definitions( -D_WINDLL ) # build shared library symbols
+endif ()
+
+if ( MINGW )
+  set( CMAKE_SHARED_LINKER_FLAGS "-Wl,--export-all" )
+endif ()
+
+#if(POSIX)
+  file(WRITE crypto/buildinf.h "\#ifndef MK1MF_BUILD\n")
+  file(APPEND crypto/buildinf.h "  /* auto-generated cmake for crypto/cversion.c */\n")
+  file(APPEND crypto/buildinf.h "  \#define PLATFORM \"dist\"\n")
+  file(APPEND crypto/buildinf.h "  \#define DATE \"Today\"\n")
+  file(APPEND crypto/buildinf.h "\#endif\n")
+#endif()
+
+# for luvit
+add_definitions(-DUSE_OPENSSL
+-DL_ENDIAN
+-DOPENSSL_THREADS
+-DPURIFY
+-D_REENTRANT
+-DOPENSSL_NO_ASM
+-DOPENSSL_NO_INLINE_ASM
+-DOPENSSL_NO_RC2
+-DOPENSSL_NO_RC5
+-DOPENSSL_NO_MD4
+-DOPENSSL_NO_HW
+-DOPENSSL_NO_GOST
+-DOPENSSL_NO_CAMELLIA
+-DOPENSSL_NO_CAPIENG
+-DOPENSSL_NO_CMS
+-DOPENSSL_NO_FIPS
+-DOPENSSL_NO_IDEA
+-DOPENSSL_NO_MDC2
+-DOPENSSL_NO_MD2
+-DOPENSSL_NO_SEED
+-DOPENSSL_NO_SOCK
+)
+
+include_directories(crypto include . crypto/asn1 crypto/evp)
+
+macro(add_sub DIR)
+  set(TMP_SRC "")
+  foreach (S ${ARGN})
+    set (TMP_SRC ${TMP_SRC} ${DIR}/${S})
+  endforeach()
+endmacro()
+
+#CRYPTO
+set(CRYPTO_EXCLUDE
+  bf/bf_cbc.c bf/bf_opts.c bf/bfspeed.c bf/bftest.c
+  bio/bf_lbuf.c bio/bss_rtcp.c
+  bn/bnspeed.c bn/bntest.c bn/divtest.c bn/exp.c bn/expspeed.c bn/exptest.c bn/vms-helper.c
+  cast/cast_spd.c cast/castopts.c cast/casttest.c
+  conf/cnf_save.c conf/test.c
+  des/cbc3_enc.c des/read_pwd.c des/des_opts.c des/destest.c des/ncbc_enc.c des/rpw.c des/destest.c
+  dh/p1024.c dh/p192.c dh/p512.c dh/dhtest.c.o
+  dsa/dsagen.c dsa/dsatest.c
+  ec/ectest.c
+  ecdh/ecdhtest.c
+  ecdsa/ecdsatest.c
+  engine/enginetest.c
+  evp/e_dsa.c evp/openbsd_hw.c evp/evp_test.c
+  hmac/hmactest.c
+  idea/idea_spd.c idea/ideatest.c
+  lhash/lh_test.c
+  md4/md4.c md4/md4test.c
+  md5/md5.c md5/md5test.c
+  mdc2/mdc2test.c
+  pkcs7/pk7_enc.c pkcs7/bio_ber.c pkcs7/example.c pkcs7/pk7_dgst.c pkcs7/sign.c pkcs7/verify.c
+  pqueue/pq_test.c
+  rand/rand_vms.c rand/randtest.c
+  rc2/rc2speed.c rc2/rc2test.c rc2/tab.c
+  rc4/rc4.c rc4/rc4speed.c rc4/rc4test.c
+  ripemd/rmd160.c ripemd/rmdtest.c
+  rsa/rsa_test.c
+  sha/sha.c sha/sha1.c sha/sha1test.c sha/shatest.c
+  whrlpool/wp_test.c
+  x509v3/v3conf.c x509v3/v3prin.c x509v3/tabtest.c
+)
+# orig. set from openssl
+#set(CRYPTO_SUB_DIRS aes asn1 bf bio bn buffer camellia cast cms comp conf des dh dsa dso
+#ec ecdh ecdsa engine err evp hmac idea krb5 lhash md4 md5 mdc2
+#modes objects ocsp pem perlasm pkcs12 pkcs7 pqueue rand rc2 rc4
+#ripemd rsa seed sha stack ts txt_db ui whrlpool x509 x509v3)
+set(CRYPTO_SUB_DIRS aes asn1 bf bio bn buffer cast comp conf des dh dsa dso
+ec ecdh ecdsa engine err evp hmac krb5 lhash md5
+modes objects ocsp pem perlasm pkcs12 pkcs7 pqueue rand rc4
+ripemd rsa sha stack ts txt_db ui whrlpool x509 x509v3)
+foreach(DIR ${CRYPTO_SUB_DIRS})
+  file(GLOB CRYPTO_C_FILE RELATIVE ${CMAKE_SOURCE_DIR} crypto/${DIR}/*.c)
+  set(CRYPTO_SRC ${CRYPTO_SRC} ${CRYPTO_C_FILE})
+  #include_directories(crypto/${DIR})
+endforeach()
+foreach(F ${CRYPTO_EXCLUDE})
+  list(REMOVE_ITEM CRYPTO_SRC crypto/${F})
+endforeach()
+
+add_sub(crypto cpt_err.c cryptlib.c cversion.c ebcdic.c ex_data.c mem_clr.c mem_dbg.c mem.c o_dir.c o_str.c o_time.c uid.c)
+set(CRYPTO_SRC ${CRYPTO_SRC} ${TMP_SRC})
+
+# SSL
+add_sub(ssl
+  s2_meth.c   s2_srvr.c s2_clnt.c  s2_lib.c  s2_enc.c s2_pkt.c
+  s3_meth.c   s3_srvr.c s3_clnt.c  s3_lib.c  s3_enc.c s3_pkt.c s3_both.c
+  s23_meth.c s23_srvr.c s23_clnt.c s23_lib.c          s23_pkt.c
+  t1_meth.c   t1_srvr.c t1_clnt.c  t1_lib.c  t1_enc.c
+  d1_meth.c   d1_srvr.c d1_clnt.c  d1_lib.c  d1_pkt.c
+  d1_both.c d1_enc.c
+  ssl_lib.c ssl_err2.c ssl_cert.c ssl_sess.c
+  ssl_ciph.c ssl_stat.c ssl_rsa.c
+  ssl_asn1.c ssl_txt.c ssl_algs.c
+  bio_ssl.c ssl_err.c kssl.c t1_reneg.c
+)
+set(SSL_SRC ${TMP_SRC})
+
+add_library(crypto ${CRYPTO_SRC})
+add_library(ssl ${SSL_SRC})
+target_link_libraries(ssl crypto)

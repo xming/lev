@@ -1,0 +1,150 @@
+#
+# Based on file from https://github.com/okuoku/libuv/blob/cmake/CMakeLists.txt
+#
+# grep "CARES_OBJS +" Makefile |sed -e 's/CARES_OBJS += //'|sed -e # 's/o$/c/'
+
+PROJECT(uv)
+cmake_minimum_required(VERSION 2.8)
+
+include_directories(include include/uv-private src)
+add_definitions(-DHAVE_CONFIG_H)
+
+set(UV_COMMON_SRCS
+src/ares/ares__close_sockets.c
+src/ares/ares__get_hostent.c
+src/ares/ares__read_line.c
+src/ares/ares__timeval.c
+src/ares/ares_cancel.c
+src/ares/ares_data.c
+src/ares/ares_destroy.c
+src/ares/ares_expand_name.c
+src/ares/ares_expand_string.c
+src/ares/ares_fds.c
+src/ares/ares_free_hostent.c
+src/ares/ares_free_string.c
+src/ares/ares_gethostbyaddr.c
+src/ares/ares_gethostbyname.c
+src/ares/ares_getnameinfo.c
+src/ares/ares_getopt.c
+src/ares/ares_getsock.c
+src/ares/ares_init.c
+src/ares/ares_library_init.c
+src/ares/ares_llist.c
+src/ares/ares_mkquery.c
+src/ares/ares_nowarn.c
+src/ares/ares_options.c
+src/ares/ares_parse_a_reply.c
+src/ares/ares_parse_aaaa_reply.c
+src/ares/ares_parse_mx_reply.c
+src/ares/ares_parse_ns_reply.c
+src/ares/ares_parse_ptr_reply.c
+src/ares/ares_parse_srv_reply.c
+src/ares/ares_parse_txt_reply.c
+src/ares/ares_process.c
+src/ares/ares_query.c
+src/ares/ares_search.c
+src/ares/ares_send.c
+src/ares/ares_strcasecmp.c
+src/ares/ares_strdup.c
+src/ares/ares_strerror.c
+src/ares/ares_timeout.c
+src/ares/ares_version.c
+src/ares/ares_writev.c
+src/ares/bitncmp.c
+src/ares/inet_net_pton.c
+src/ares/inet_ntop.c
+src/cares.c
+src/fs-poll.c
+src/uv-common.c
+)
+
+file(GLOB UV_WIN32_SRCS src/windows/*.c)
+set(UV_WIN32_SRCS ${UV_WIN32_SRCS}
+src/ares/windows_port.c
+src/ares/ares_platform.c
+)
+
+set(UV_POSIX_SRCS
+src/unix/async.c
+src/unix/core.c
+src/unix/dl.c
+src/unix/error.c
+src/unix/fs.c
+src/unix/loop-watcher.c
+src/unix/loop.c
+src/unix/pipe.c
+src/unix/poll.c
+src/unix/process.c
+src/unix/stream.c
+src/unix/tcp.c
+src/unix/thread.c
+src/unix/timer.c
+src/unix/tty.c
+src/unix/udp.c
+src/unix/ev/ev.c
+src/unix/eio/eio.c
+src/unix/uv-eio.c
+)
+
+# set UV_SRCS and UV_LIBS
+
+if(WIN32)
+    include_directories(src/ares/config_win32)
+    add_definitions(-D_WIN32_WINNT=0x0600 -DEIO_STACKSIZE=262144 -D_GNU_SOURCE)
+    set(UV_SRCS ${UV_WIN32_SRCS} ${UV_COMMON_SRCS})
+    set(UV_TESTRUNNER_SRCS test/runner-win.c test/runner-win.h)
+    set(UV_LIBS ws2_32 psapi iphlpapi)
+else()
+    # POSIX common
+    include_directories(src/unix/ev)
+    add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -DEIO_STACKSIZE=262144)
+    set(UV_TESTRUNNER_SRCS test/runner-unix.c test/runner-unix.h)
+
+    # OS specific thingy
+    # FIXME: solaris here
+    if(APPLE)
+        add_definitions(
+            -D_DARWIN_USE_64_BIT_INODE=1
+            -DEV_CONFIG_H="config_darwin.h"
+            -DEIO_CONFIG_H="config_darwin.h")
+        include_directories(src/ares/config_darwin)
+        set(UV_SRCS
+            ${UV_POSIX_SRCS}
+            ${UV_COMMON_SRCS}
+            src/unix/darwin.c
+            src/unix/kqueue.c)
+        set(UV_LIBS m)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_definitions(-DEV_CONFIG_H="config_linux.h" -DEIO_CONFIG_H="config_linux.h")
+        include_directories(src/ares/config_linux)
+        set(UV_SRCS
+            ${UV_POSIX_SRCS}
+            ${UV_COMMON_SRCS}
+            src/unix/linux/linux-core.c
+            src/unix/linux/inotify.c
+            src/unix/linux/syscalls.c
+            )
+        set(UV_LIBS m dl rt)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+        add_definitions(-DEV_CONFIG_H="config_freebsd.h" -DEIO_CONFIG_H="config_freebsd.h")
+        include_directories(src/ares/config_freebsd)
+        set(UV_SRCS
+            ${UV_POSIX_SRCS}
+            ${UV_COMMON_SRCS}
+            src/unix/freebsd.c
+            src/unix/kqueue.c)
+        set(UV_LIBS m pthread kvm)
+    endif()
+endif()
+
+add_library(uv SHARED ${UV_SRCS})
+add_library(uv-static STATIC ${UV_SRCS})
+
+target_link_libraries(uv ${UV_LIBS})
+target_link_libraries(uv-static ${UV_LIBS})
+
+set_target_properties(
+  uv-static
+  PROPERTIES
+  ARCHIVE_OUTPUT_NAME uv
+)

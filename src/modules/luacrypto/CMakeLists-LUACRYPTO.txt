@@ -1,0 +1,25 @@
+PROJECT(luacrypto C)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+
+#FIND_PACKAGE(Lua51 REQUIRED)
+#FIND_PACKAGE(OpenSSL REQUIRED)
+
+ADD_LIBRARY(lcrypto MODULE src/lcrypto.c)
+ADD_LIBRARY(lcrypto-static STATIC src/lcrypto.c)
+SET_TARGET_PROPERTIES(lcrypto PROPERTIES PREFIX "")
+
+INCLUDE_DIRECTORIES(lcrypto ${LUAJIT_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(lcrypto ${OPENSSL_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(lcrypto-static ${LUAJIT_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(lcrypto-static ${OPENSSL_INCLUDE_DIR})
+
+TARGET_LINK_LIBRARIES(lcrypto ${OPENSSL_LIB_CRYPTO})
+#TARGET_LINK_LIBRARIES(lcrypto ${LUAJIT_LIBRARIES})
+
+#TARGET_LINK_LIBRARIES(lcrypto-static ${OPENSSL_LIB_CRYPTO})
+#TARGET_LINK_LIBRARIES(lcrypto-static ${LUAJIT_LIBRARIES})
+
+message(----------------------${LUAJIT_LIBRARIES}------------------------------)
+message(----------------------${LUAJIT_INCLUDE_DIR}------------------------------)
+message(----------------------${OPENSSL_LIB_CRYPTO}------------------------------)
+message(----------------------${OPENSSL_INCLUDE_DIR}------------------------------)
