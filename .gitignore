@@ -1,12 +1,9 @@
-build/*
-bundle/*
-jit
-generated
 *.o
 *.lev
 *.*~
-options.gypi
 *.xcodeproj
 out/
 *.swp
 *.dist
+CMakeCache.txt
+CMakeFiles/*
