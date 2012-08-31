@@ -35,12 +35,18 @@
 #include "luv_tls.h"
 #include "lcrypto.h"
 #endif
+#ifdef USE_ZLIB
 #include "luv_zlib.h"
+#endif
 #include "luv_portability.h"
 #include "lconstants.h"
+#ifdef USE_HTTP_PARSER
 #include "lhttp_parser.h"
+#endif
 #include "lev_buffer.h"
+#ifdef USE_YAJL
 #include "lyajl.h"
+#endif
 #include "lenv.h"
 
 static int lev_exit(lua_State* L) {
@@ -177,18 +183,22 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   lua_pushcfunction(L, luaopen_crypto);
   lua_setfield(L, -2, "_crypto");
 #endif
+#ifdef USE_YAJL
   /* Register yajl */
   lua_pushcfunction(L, luaopen_yajl);
   lua_setfield(L, -2, "yajl");
+#endif
   /* Register debug */
   lua_pushcfunction(L, luaopen_debugger);
   lua_setfield(L, -2, "_debug");
   /* Register os */
   lua_pushcfunction(L, luaopen_os_binding);
   lua_setfield(L, -2, "os_binding");
+#ifdef USE_HTTP_PARSER
   /* Register http_parser */
   lua_pushcfunction(L, luaopen_http_parser);
   lua_setfield(L, -2, "http_parser");
+#endif
   /* Register lev_buffer */
   lua_pushcfunction(L, luaopen_levbuffer);
   lua_setfield(L, -2, "cbuffer");
@@ -201,9 +211,11 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   /* Register constants */
   lua_pushcfunction(L, luaopen_constants);
   lua_setfield(L, -2, "constants");
+#ifdef USE_ZLIB
   /* Register zlib */
   lua_pushcfunction(L, luaopen_zlib_native);
   lua_setfield(L, -2, "zlib_native");
+#endif
 
   /* We're done with preload, put it away */
   lua_pop(L, 1);
@@ -233,16 +245,18 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
 
   lua_pushstring(L, LUAJIT_VERSION);
   lua_setglobal(L, "LUAJIT_VERSION");
-
+#ifdef USE_HTTP_PARSER
   lua_pushstring(L, HTTP_VERSION);
   lua_setglobal(L, "HTTP_VERSION");
-
+#endif
+#ifdef USE_YAJL
   lua_pushstring(L, YAJL_VERSIONISH);
   lua_setglobal(L, "YAJL_VERSION");
-
+#endif
+#ifdef USE_ZLIB
   lua_pushstring(L, ZLIB_VERSION);
   lua_setglobal(L, "ZLIB_VERSION");
-
+#endif
 #ifdef USE_OPENSSL
   lua_pushstring(L, OPENSSL_VERSION_TEXT);
   lua_setglobal(L, "OPENSSL_VERSION");
