@@ -10,8 +10,10 @@ set (MOD_SYSTEM_PKG OpenSSL)
 set (MOD_SYSTEM_PKG_VAR OPENSSL)
 
 # this is for non system lib build
-set(MOD_URL ${CMAKE_SOURCE_DIR}/tarballs/openssl-1.0.0j.tar.gz)
-set(MOD_MD5 cbe4ac0d8f598680f68a951e04b0996b)
+#set(MOD_URL ${CMAKE_SOURCE_DIR}/tarballs/openssl-1.0.0j.tar.gz)
+#set(MOD_MD5 cbe4ac0d8f598680f68a951e04b0996b)
+set(MOD_URL ${CMAKE_SOURCE_DIR}/tarballs/openssl-1.0.0j.zip)
+set(MOD_MD5 cfb2bf9999dd5a263540b03dab392157)
 set(MOD_LINK_LIB libssl.a)
 
 option(USE_${MOD_NAME} ${MOD_DESC} 0)
@@ -20,9 +22,9 @@ if (${USE_${MOD_NAME}})
   if (${USE_SYSTEM_${MOD_NAME}})
     luvit_find_system_pkg(${MOD_SYSTEM_PKG} ${MOD_SYSTEM_PKG_VAR})
   else() # not using system lib, needs to fetch and compile
-    luavit_add_ext(${MOD_NAME} modules ${MOD_DIR} ${MOD_URL} ${MOD_MD5} ${MOD_LINK_LIB} include/openssl)
+    luavit_add_ext(${MOD_NAME} modules ${MOD_DIR} ${MOD_URL} ${MOD_MD5} ${MOD_LINK_LIB} include)
     set(OPENSSL_LIBRARIES ${SOURCE_DIR}/libcrypto.a ${SOURCE_DIR}/libssl.a)
-    set(OPENSSL_INCLUDE_DIR ${SOURCE_DIR}/include/openssl)
+    set(OPENSSL_INCLUDE_DIR ${SOURCE_DIR}/include)
   endif ()
   luvit_add_mod_src()
   #bundling
